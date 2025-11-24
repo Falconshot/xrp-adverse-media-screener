@@ -127,7 +127,7 @@ def calculate_risk(news, sanctions, mica, ubo):
     risk_level = "Korkea" if score > 70 else "Kohtalainen" if score > 30 else "Matala"
     return score, risk_level, explanation
 
-# ----------------------- PDF – FIXED EVERYTHING -----------------------
+# ----------------------- PDF – FIXED EVERYTHING + LESS DULL -----------------------
 def make_pdf(entity, news, sanctions, mica, ubo, score, risk_level, explanation):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=50)
@@ -139,6 +139,9 @@ def make_pdf(entity, news, sanctions, mica, ubo, score, risk_level, explanation)
     if 'CustomBold' not in styles:
         styles.add(ParagraphStyle(name='CustomBold', parent=styles['Normal'], fontName='Helvetica-Bold', spaceAfter=10))
 
+    if 'CustomGreen' not in styles:
+        styles.add(ParagraphStyle(name='CustomGreen', parent=styles['Normal'], textColor=colors.green, fontSize=16, alignment=TA_CENTER, spaceAfter=20))
+
     story = [
         Paragraph("XRP Tarkistus Pro – AML Raportti", styles['CustomTitle']),
         Spacer(1, 20),
@@ -148,13 +151,30 @@ def make_pdf(entity, news, sanctions, mica, ubo, score, risk_level, explanation)
         Spacer(1, 30)
     ]
 
+    # Checks Performed
+    story.append(Paragraph("Tarkistetut kohteet:", styles['CustomBold']))
+    checks = [
+        "Negatiiviset uutiset (Adverse Media)",
+        "Pakotelistat (Sanctions)",
+        "MiCA-valtuutus (ESMA Register)",
+        "PRH UBO-tiedot (Finnish Company Register)"
+    ]
+    for check in checks:
+        story.append(Paragraph(f"• {check}", styles['Normal']))
+
+    Spacer(1, 20)
+
     # Explanation
     story.append(Paragraph("Riskiselitys:", styles['CustomBold']))
-    for exp in explanation:
-        story.append(Paragraph(exp, styles['Normal']))
+    if explanation:
+        for exp in explanation:
+            story.append(Paragraph(exp, styles['Normal']))
+    else:
+        story.append(Paragraph("Ei riskejä – Kaikki OK!", styles['CustomGreen']))
 
     # Data tables
     if news or sanctions or mica or ubo:
+        story.append(Paragraph("Löydökset:", styles['CustomBold']))
         data = [["Tyyppi", "Löydös"]]
         for n in news[:6]: data.append(["Uutinen", n["title"][:100]])
         for s in sanctions: data.append(["Pakote", f"{s['name']} – {s['reason']}"])
@@ -162,7 +182,7 @@ def make_pdf(entity, news, sanctions, mica, ubo, score, risk_level, explanation)
         for u in ubo: data.append(["PRH UBO", f"{u['name']} – {u['ubo_status']}"])
         story.append(Table(data, colWidths=[80, 420]))
     else:
-        story.append(Paragraph("Ei riskejä havaittu", styles['Normal']))
+        story.append(Paragraph("Ei löydöksiä – Kaikki on OK!", styles['CustomGreen']))
 
     story.append(Spacer(1, 50))
     story.append(Paragraph("© 2025 XRP Tarkistus Finland Pro", styles['Normal']))
