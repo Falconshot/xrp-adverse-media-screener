@@ -175,12 +175,14 @@ def make_pdf(entity, news, sanctions, mica, ubo, score, risk_level, explanation)
     # Data tables
     if news or sanctions or mica or ubo:
         story.append(Paragraph("Löydökset:", styles['CustomBold']))
-        data = [["Tyyppi", "Löydös", "Linkki"]]
-        for n in news[:6]: data.append(["Uutinen", n["title"][:100], n["link"]])
-        for s in sanctions: data.append(["Pakote", f"{s['name']} – {s['reason']}", s["link"]])
-        for m in mica: data.append(["MiCA", f"{m['name']} – {m['status']}", ""])
-        for u in ubo: data.append(["PRH UBO", f"{u['name']} – {u['ubo_status']}", ""])
-        story.append(Table(data, colWidths=[80, 200, 200]))
+        data = [["Tyyppi", "Löydös"]]
+        for n in news[:6]: 
+            data.append(["Uutinen", n["title"][:100]])
+            data.append(["Linkki", n["link"]])  # Link on second row below news
+        for s in sanctions: data.append(["Pakote", f"{s['name']} – {s['reason']}"])
+        for m in mica: data.append(["MiCA", f"{m['name']} – {m['status']}"])
+        for u in ubo: data.append(["PRH UBO", f"{u['name']} – {u['ubo_status']}"])
+        story.append(Table(data, colWidths=[80, 420]))
     else:
         story.append(Paragraph("Ei löydöksiä – Kaikki on OK!", styles['CustomGreen']))
 
