@@ -14,7 +14,7 @@ from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER
 from transformers import pipeline
 
-# ----------------------- LOAD MODEL WITH NICE SPINNER -----------------------
+# ----------------------- LOAD MODEL WITH SPINNER -----------------------
 st.set_page_config(page_title="XRP Tarkistus", page_icon="Finland")
 st.title("XRP Tarkistus")
 st.caption("Negatiiviset uutiset • Pakotelistat • MiCA • PDF")
@@ -47,7 +47,11 @@ def screen_sanctions(entity):
         hits = []
         for item in r.json().get("results", []):
             if item.get("match", 0) > 0.85:
-                hits.append({"name": item["name"], "], "reason": item.get("reason","Sanctioned")})
+                hits.append({
+                    "name": item["name"],
+                    "reason": item.get("reason", "Sanctioned"),
+                    "link": f"https://www.opensanctions.org/entities/{item.get('entityId','')}/"
+                })
         return hits
     except:
         return []
@@ -58,23 +62,26 @@ def screen_mica(entity):
                          params={"q": f'legal_name:"{entity}"', "wt": "csv", "rows": 5}, timeout=8)
         if "text/csv" in r.headers.get("content-type", ""):
             df = pd.read_csv(io.StringIO(r.text))
-            return [{"name": row.get("legal_name", entity), "status": row.get("authorisation_status", "Not found")} for _, row in df.iterrows()]
+            return [{"name": row.get("legal_name", entity),
+                     "status": row.get("authorisation_status", "Not found")}
+                    for _, row in df.iterrows()]
     except:
         pass
     return []
 
-# ----------------------- PDF – FIXED KeyError -----------------------
+# ----------------------- PDF – NO KeyError -----------------------
 def make_pdf(entity, news, sanctions, mica):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=50)
     styles = getSampleStyleSheet()
 
-    # Use a name that doesn't exist → no KeyError
-    if 'MyTitle' not in styles:
-        styles.add(ParagraphStyle(name='MyTitle', fontSize=24, alignment=TA_CENTER, textColor=colors.darkblue, spaceAfter=30))
+    # Safe custom style name
+    if 'CustomTitle' not in styles:
+        styles.add(ParagraphStyle(name='CustomTitle', fontSize=24, alignment=TA_CENTER,
+                                  textColor=colors.darkblue, spaceAfter=30))
 
     story = [
-        Paragraph("XRP Tarkistus – Virallinen raportti", styles['MyTitle']),
+        Paragraph("XRP Tarkistus – Virallinen raportti", styles['CustomTitle']),
         Spacer(1, 20),
         Paragraph(f"<b>Kohde:</b> {entity}", styles['Normal']),
         Paragraph(f"<b>Päivä:</b> {datetime.now():%d.%m.%Y %H:%M}", styles['Normal']),
